@@ -242,6 +242,19 @@
         text && Module.printErr("[post-exception status] " + text);
       };
     };
+
+    // ✅ Patch: replace instantiateStreaming with safe fallback
+    if (WebAssembly.instantiateStreaming) {
+      var oldInstantiateStreaming = WebAssembly.instantiateStreaming;
+      WebAssembly.instantiateStreaming = function(response, importObject) {
+        return oldInstantiateStreaming(response, importObject).catch(function(err) {
+          console.warn("Streaming failed, falling back to ArrayBuffer:", err);
+          return response
+            .then(function(r) { return r.arrayBuffer(); })
+            .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject); });
+        });
+      };
+    }
   </script>
 
   <script async src="SpaceCadetPinball.js"></script>
